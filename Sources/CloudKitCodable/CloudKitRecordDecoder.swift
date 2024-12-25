@@ -130,25 +130,25 @@ extension _CloudKitRecordDecoder.KeyedContainer: KeyedDecodingContainerProtocol 
 
     func decode<T>(_ type: T.Type, forKey key: Key) throws -> T where T : Decodable {
         try checkCanDecodeValue(forKey: key)
-
+        
         if key.stringValue == _CKSystemFieldsKeyName {
             return systemFieldsData as! T
         }
-
+        
         if key.stringValue == _CKIdentifierKeyName {
             return record.recordID.recordName as! T
         }
-
+        
         // Bools are encoded as Int64 in CloudKit
         if type == Bool.self {
             return try decodeBool(forKey: key) as! T
         }
-
+        
         // URLs are encoded as String (remote) or CKAsset (file URL) in CloudKit
         if type == URL.self {
             return try decodeURL(forKey: key) as! T
         }
-
+        
         func typeMismatch(_ message: String) -> DecodingError {
             let context = DecodingError.Context(
                 codingPath: codingPath,
@@ -156,21 +156,21 @@ extension _CloudKitRecordDecoder.KeyedContainer: KeyedDecodingContainerProtocol 
             )
             return DecodingError.typeMismatch(type, context)
         }
-
+        
         if let stringEnumType = T.self as? any CloudKitStringEnum.Type {
             guard let stringValue = record[key.stringValue] as? String else {
                 throw typeMismatch("Expected to decode a rawValue String for \"\(String(describing: type))\"")
             }
             guard let enumValue = stringEnumType.init(rawValue: stringValue) ?? stringEnumType.cloudKitFallbackCase else {
-                #if DEBUG
+#if DEBUG
                 throw typeMismatch("Failed to construct enum \"\(String(describing: type))\" from String \"\(stringValue)\"")
-                #else
+#else
                 throw typeMismatch("Failed to construct enum \"\(String(describing: type))\" from String value")
-                #endif
+#endif
             }
             return enumValue as! T
         }
-
+        
         if let intEnumType = T.self as? any CloudKitIntEnum.Type {
             guard let intValue = record[key.stringValue] as? Int else {
                 throw typeMismatch("Expected to decode a rawValue Int for \"\(String(describing: type))\"")
@@ -180,23 +180,29 @@ extension _CloudKitRecordDecoder.KeyedContainer: KeyedDecodingContainerProtocol 
             }
             return enumValue as! T
         }
-
+        
         /// This will attempt to JSON-decode child values for `Data` fields, but it's important to check that the type of the field
         /// is not `Data`, otherwise we'd be trying to decode JSON from any data field, even those that do not contain JSON-encoded children.
         if T.self != Data.self,
            let nestedData = record[key.stringValue] as? Data
         {
             let value = try JSONDecoder.nestedCloudKitValue.decode(T.self, from: nestedData)
-
+            
             return value
         } else if let customAssetType = type as? CloudKitAssetValue.Type {
             guard let ckAsset = record[key.stringValue] as? CKAsset else {
                 throw typeMismatch("CKRecord value for CloudKitAssetValue field must be a CKAsset")
             }
-
+            
             let value = try decodeCustomAsset(customAssetType, from: ckAsset, key: key)
-
+            
             return value as! T
+        } else if T.self == String.self, let reference = record[key.stringValue] as? CKRecord.Reference {
+            guard let value = reference.recordID.recordName as? T else {
+                throw typeMismatch("CKRecord.Reference couldn't be converted to \"\(String(describing: type))\"")
+            }
+            
+            return value
         } else {
             guard let value = record[key.stringValue] as? T else {
                 throw typeMismatch("CKRecordValue couldn't be converted to \"\(String(describing: type))\"")

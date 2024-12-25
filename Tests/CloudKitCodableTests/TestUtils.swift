@@ -36,6 +36,7 @@ extension CKRecord {
             return try XCTUnwrap(record)
         }
     }
+    
 }
 
 /// Validates that all fields in `record` match the expectations of encoding the test `Person` struct to a `CKRecord`

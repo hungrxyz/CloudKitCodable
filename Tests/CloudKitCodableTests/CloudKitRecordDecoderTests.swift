@@ -118,4 +118,21 @@ final class CloudKitRecordDecoderTests: XCTestCase {
 
         XCTAssertEqual(sameModelDecoded, model)
     }
+    
+    func testReferenceDecoding() throws {
+        // given
+        let record = CKRecord(recordType: "TestItem")
+        record["id"] = UUID().uuidString
+        
+        let referenceID = CKRecord.ID(recordName: UUID().uuidString)
+        let reference = CKRecord.Reference(recordID: referenceID, action: .deleteSelf)
+        record["reference"] = reference
+        
+        // when
+        let item = try CloudKitRecordDecoder().decode(TestItem.self, from: record)
+        
+        // then
+        XCTAssertEqual(item.id, record["id"] as? String)
+        XCTAssertEqual(item.reference, referenceID.recordName)
+    }
 }
