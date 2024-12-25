@@ -203,6 +203,12 @@ extension _CloudKitRecordDecoder.KeyedContainer: KeyedDecodingContainerProtocol 
             }
             
             return value
+        } else if T.self == [String].self, let references = record[key.stringValue] as? [CKRecord.Reference] {
+            guard let values = references.map(\.recordID.recordName) as? T else {
+                throw typeMismatch("CKRecord.References couldn't be converted to \"\(String(describing: type))\"")
+            }
+            
+            return values
         } else {
             guard let value = record[key.stringValue] as? T else {
                 throw typeMismatch("CKRecordValue couldn't be converted to \"\(String(describing: type))\"")

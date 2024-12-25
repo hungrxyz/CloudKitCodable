@@ -11,5 +11,6 @@ struct TestItem: Hashable, Codable {
     
     let id: String
     let reference: String
+    let references: [String]
     
 }

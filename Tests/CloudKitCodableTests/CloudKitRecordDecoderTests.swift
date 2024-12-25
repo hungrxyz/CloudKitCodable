@@ -128,11 +128,18 @@ final class CloudKitRecordDecoderTests: XCTestCase {
         let reference = CKRecord.Reference(recordID: referenceID, action: .deleteSelf)
         record["reference"] = reference
         
+        let referenceIDs = [UUID(), UUID(), UUID()].map(\.uuidString)
+        let references = referenceIDs.map {
+            CKRecord.Reference(recordID: CKRecord.ID(recordName: $0), action: .deleteSelf)
+        }
+        record["references"] = references
+        
         // when
         let item = try CloudKitRecordDecoder().decode(TestItem.self, from: record)
         
         // then
         XCTAssertEqual(item.id, record["id"] as? String)
         XCTAssertEqual(item.reference, referenceID.recordName)
+        XCTAssertEqual(item.references, referenceIDs)
     }
 }
