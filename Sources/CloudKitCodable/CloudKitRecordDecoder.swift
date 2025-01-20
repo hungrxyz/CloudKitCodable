@@ -113,9 +113,16 @@ extension _CloudKitRecordDecoder.KeyedContainer: KeyedDecodingContainerProtocol 
     }
 
     func contains(_ key: Key) -> Bool {
-        guard key.stringValue != _CKSystemFieldsKeyName else { return true }
-
-        return allKeys.contains(where: { $0.stringValue == key.stringValue })
+        switch key.stringValue {
+        case _CKSystemFieldsKeyName, _CKIdentifierKeyName:
+            return true
+        case "identifier", "id":
+            return true
+        case "creationDate", "modificationDate":
+            return true
+        default:
+            return allKeys.contains(where: { $0.stringValue == key.stringValue })
+        }
     }
 
     func decodeNil(forKey key: Key) throws -> Bool {
@@ -135,8 +142,19 @@ extension _CloudKitRecordDecoder.KeyedContainer: KeyedDecodingContainerProtocol 
             return systemFieldsData as! T
         }
         
-        if key.stringValue == _CKIdentifierKeyName {
+        if key.stringValue == _CKIdentifierKeyName
+            || key.stringValue == "identifier"
+            || key.stringValue == "id" {
+            
             return record.recordID.recordName as! T
+        }
+        
+        if key.stringValue == "creationDate" {
+            return record.creationDate as! T
+        }
+        
+        if key.stringValue == "modificationDate" {
+            return record.modificationDate as! T
         }
         
         // Bools are encoded as Int64 in CloudKit

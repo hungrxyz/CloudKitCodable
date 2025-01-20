@@ -9,7 +9,7 @@ import Foundation
 
 struct TestItem: Hashable, Codable {
     
-    let id: String
+    let field: String
     let reference: String
     let references: [String]
     

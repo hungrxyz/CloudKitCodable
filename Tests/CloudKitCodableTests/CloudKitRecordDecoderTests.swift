@@ -122,7 +122,7 @@ final class CloudKitRecordDecoderTests: XCTestCase {
     func testReferenceDecoding() throws {
         // given
         let record = CKRecord(recordType: "TestItem")
-        record["id"] = UUID().uuidString
+        record["field"] = UUID().uuidString
         
         let referenceID = CKRecord.ID(recordName: UUID().uuidString)
         let reference = CKRecord.Reference(recordID: referenceID, action: .deleteSelf)
@@ -138,8 +138,29 @@ final class CloudKitRecordDecoderTests: XCTestCase {
         let item = try CloudKitRecordDecoder().decode(TestItem.self, from: record)
         
         // then
-        XCTAssertEqual(item.id, record["id"] as? String)
+        XCTAssertEqual(item.field, record["field"] as? String)
         XCTAssertEqual(item.reference, referenceID.recordName)
         XCTAssertEqual(item.references, referenceIDs)
     }
+    
+    func testIdentifierAndDates() throws {
+        // given
+        let recordID = CKRecord.ID(recordName: UUID().uuidString)
+        let record = CKRecord(recordType: "TestItem", recordID: recordID)
+        
+        struct Item: Decodable {
+            let identifier: String
+            let creationDate: Date?
+            let modificationDate: Date?
+        }
+        
+        // when
+        let item = try CloudKitRecordDecoder().decode(Item.self, from: record)
+        
+        // then
+        XCTAssertEqual(item.identifier, recordID.recordName)
+        XCTAssertNil(item.creationDate)
+        XCTAssertNil(item.modificationDate)
+    }
+    
 }
