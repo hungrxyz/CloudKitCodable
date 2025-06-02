@@ -127,10 +127,11 @@ final class CloudKitRecordDecoderTests: XCTestCase {
         let referenceID = CKRecord.ID(recordName: UUID().uuidString)
         let reference = CKRecord.Reference(recordID: referenceID, action: .deleteSelf)
         record["reference"] = reference
+        record["uuidReference"] = reference
         
-        let referenceIDs = [UUID(), UUID(), UUID()].map(\.uuidString)
+        let referenceIDs = [UUID(), UUID(), UUID()]
         let references = referenceIDs.map {
-            CKRecord.Reference(recordID: CKRecord.ID(recordName: $0), action: .deleteSelf)
+            CKRecord.Reference(recordID: CKRecord.ID(recordName: $0.uuidString), action: .deleteSelf)
         }
         record["references"] = references
         record["uuidReferences"] = references
@@ -141,7 +142,9 @@ final class CloudKitRecordDecoderTests: XCTestCase {
         // then
         XCTAssertEqual(item.field, record["field"] as? String)
         XCTAssertEqual(item.reference, referenceID.recordName)
-        XCTAssertEqual(item.references, referenceIDs)
+        XCTAssertEqual(item.uuidReference, UUID(uuidString: referenceID.recordName)!)
+        XCTAssertEqual(item.references, referenceIDs.map(\.uuidString))
+        XCTAssertEqual(item.uuidReferences, referenceIDs)
     }
     
     func testIdentifierAndDates() throws {

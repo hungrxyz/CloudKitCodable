@@ -293,7 +293,11 @@ extension _CloudKitRecordDecoder.KeyedContainer: KeyedDecodingContainerProtocol 
     }
     
     private func decodeUUID(forKey key: Key) throws -> UUID {
-        guard let stringValue = record[key.stringValue] as? String else {
+        guard let stringValue = if let reference = record[key.stringValue] as? CKRecord.Reference {
+            reference.recordID.recordName
+        } else {
+            record[key.stringValue] as? String
+        } else {
             let context = DecodingError.Context(codingPath: codingPath, debugDescription: "UUID should have been encoded as String in CKRecord")
             throw DecodingError.typeMismatch(UUID.self, context)
         }
