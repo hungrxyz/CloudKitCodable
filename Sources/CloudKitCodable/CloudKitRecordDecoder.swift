@@ -146,7 +146,11 @@ extension _CloudKitRecordDecoder.KeyedContainer: KeyedDecodingContainerProtocol 
             || key.stringValue == "identifier"
             || key.stringValue == "id" {
             
-            return record.recordID.recordName as! T
+            if type == UUID.self {
+                return UUID(uuidString: record.recordID.recordName)! as! T
+            } else {
+                return record.recordID.recordName as! T
+            }
         }
         
         if key.stringValue == "creationDate" {
@@ -155,6 +159,11 @@ extension _CloudKitRecordDecoder.KeyedContainer: KeyedDecodingContainerProtocol 
         
         if key.stringValue == "modificationDate" {
             return record.modificationDate as! T
+        }
+        
+        // UUIDs are encoded as String in CloudKit
+        if type == UUID.self {
+            return try decodeUUID(forKey: key) as! T
         }
         
         // Bools are encoded as Int64 in CloudKit
@@ -227,6 +236,12 @@ extension _CloudKitRecordDecoder.KeyedContainer: KeyedDecodingContainerProtocol 
             }
             
             return values
+        } else if T.self == [UUID].self, let references = record[key.stringValue] as? [CKRecord.Reference] {
+            guard let values = references.compactMap({ UUID(uuidString: $0.recordID.recordName) }) as? T else {
+                throw typeMismatch("CKRecord.References couldn't be converted to \"\(String(describing: type))\"")
+            }
+            
+            return values
         } else {
             guard let value = record[key.stringValue] as? T else {
                 throw typeMismatch("CKRecordValue couldn't be converted to \"\(String(describing: type))\"")
@@ -275,6 +290,20 @@ extension _CloudKitRecordDecoder.KeyedContainer: KeyedDecodingContainerProtocol 
         }
 
         return url
+    }
+    
+    private func decodeUUID(forKey key: Key) throws -> UUID {
+        guard let stringValue = record[key.stringValue] as? String else {
+            let context = DecodingError.Context(codingPath: codingPath, debugDescription: "UUID should have been encoded as String in CKRecord")
+            throw DecodingError.typeMismatch(UUID.self, context)
+        }
+        
+        guard let uuid = UUID(uuidString: stringValue) else {
+            let context = DecodingError.Context(codingPath: codingPath, debugDescription: "No UUID string found for \(key) in CKRecord")
+            throw DecodingError.dataCorrupted(context)
+        }
+
+        return uuid
     }
 
     private func decodeBool(forKey key: Key) throws -> Bool {
